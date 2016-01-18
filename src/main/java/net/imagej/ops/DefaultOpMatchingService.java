@@ -30,6 +30,11 @@
 
 package net.imagej.ops;
 
+import com.googlecode.gentyref.GenericTypeReflector;
+import com.googlecode.gentyref.TypeToken;
+
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +56,7 @@ import org.scijava.plugin.Plugin;
 import org.scijava.service.AbstractService;
 import org.scijava.service.Service;
 import org.scijava.util.ConversionUtils;
+import org.scijava.util.GenericUtils;
 
 /**
  * Default service for finding {@link Op}s which match a request.
@@ -407,7 +413,139 @@ public class DefaultOpMatchingService extends AbstractService implements
 
 	/** Determines whether the argument is a matching class instance. */
 	private boolean isMatchingClass(final Object arg, final Type type) {
+		// type must be either a raw class, or a parameterized type
+		// (might be GenericArrayType; throw UnsupportedOperationException in that case)
+		if (arg instanceof Type) {
+			// I really hope this works!
+			return GenericTypeReflector.isSuperType(type, (Type) arg);
+		}
+
+		if (type instanceof Class) {
+			if (arg instanceof TypeToken) {
+				// arg is a TypeToken null placeholder; unwrap it
+				return isMatchingClass(((TypeToken<?>) arg).getType(), type);
+			}
+			if (arg instanceof Type) {
+				// arg is a generic Type null placeholder
+				// complex...
+				// if the field has a single class associated with it; e.g.:
+				// Clazz<T extends RealType<T>>
+				// ... T myParam
+				if (arg instanceof ParameterizedType) {
+					final ParameterizedType pArg = (ParameterizedType) arg;
+
+					// FIXME: type is actually known to be a Class here.
+					// This is the more general case where we don't know if type is a Class
+					// or a ParameterizedType.
+					for (final Class<?> typeClass : GenericUtils.getClasses(type)) {
+						// NB: Probably don't need this; below logic
+						// will return null if arg is not assignable.
+//						// all arg classes must be assignable to each destination class!
+//						for (final Class<?> argClass : GenericUtils.getClasses(pArg)) {
+//							if (!typeClass.isAssignableFrom(argClass)) return false;
+//						}
+						
+						// when treating the arg as this type class, its generic
+						// parameters must be compatible with those of the destination.
+						// E.g.: Suppose we have a class:
+						//    MyAwesomeOp<B extends GenericByteType<B>, I extends IterableInterval<B> & RandomAccessibleInterval<B>>:
+						// The field is:
+						//    I myImage
+						// and the arg is a ArrayImg<FloatType>
+						// then:
+						// - what is the arg w.r.t. IterableInterval?
+						//   It's IterableInterval<FloatType>.
+						// - what is the arg w.r.t. RandomAccessibleInterval?
+						//   It's RandomAccessibleInterval<FloatType>.
+						final Type argTypeInContext = GenericTypeReflector
+							.getExactSuperType(pArg, typeClass);
+						if (argTypeInContext == null) {
+							// arg is not assignable to this destination class
+							return false;
+						}
+						if (argTypeInContext instanceof Class) {
+							// nothing further to check; it is an instance of this
+							// TODO: Consider checking anyway, JUST to be sure!
+						}
+						else if (argTypeInContext instanceof ParameterizedType) {
+							((ParameterizedType) argTypeInContext).getActualTypeArguments();
+							// e.g.: IterableInterval<FloatType>
+							GenericTypeReflector.isSuperType(superType, subType)
+						}
+						else {
+							throw new UnsupportedOperationException(
+								"Do not know how to handle " + argTypeInContext.getClass().getName());
+						}
+					}
+				}
+				else {
+					throw new UnsupportedOperationException(
+						"Unsupported null placeholder of type " + arg.getClass().getName());
+				}
+			}
+			// arg is a vanilla object
+			return ((Class<?>) type).isInstance(arg);
+		}
+		if (type instanceof ParameterizedType) {
+			// check type parameters
+			final Type[] fieldTypeArgs =
+				((ParameterizedType) type).getActualTypeArguments();
+
+			// - first try: see if the service can give us the actual types
+			final Type[] objectTypeArgs = getTypeArgs(arg);
+
+			if (objectTypeArgs != null) {
+				if (fieldTypeArgs.length != objectTypeArgs.length) return false;
+				for (int i=0; i<fieldTypeArgs.length; i++) {
+					if (!isMatchingClass(objectTypeArgs[i], fieldTypeArgs[i])) return false;
+				}
+				return true;
+			}
+
+			//   or failing that, actual type instances
+			final Object[] objectTypeArgInstances = getTypeArgInstances(arg);
+			if (objectTypeArgInstances != null) {
+				// NB: think carefully about whether the more specific instance types
+				// will cause any problems, but actually it should match. The bigger
+				// concern is false matches, maybe? E.g.: Iterable<Number> and the
+				// handler returns Integer instance and so it fills an Iterable<Integer>
+				// but actually the second item of the iteration is non-Integer...
+				if (fieldTypeArgs.length != objectTypeArgs.length) return false;
+				for (int i=0; i<fieldTypeArgs.length; i++) {
+					if (!isMatchingClass(objectTypeArgInstances[i], fieldTypeArgs[i])) {
+						return false;
+					}
+				}
+				return true;
+			}
+
+			// - if not, then we can try analysing the wildcard version;
+			//   arg.getClass(); see next item
+			// Example:
+//			suppose a class ByteArrayImg<B extends GenericByteType>
+//			obj = ByteArrayImg of some unknown generic params
+//			field type = AbstractNativeImg<B extends GenericByteType>
+			// We only know obj fits in the field if we add the wildcards
+			// and inspect the lower bound afterward
+		}
+		// arg might be an object instance
+
+		// arg might be a Class
+		// - get its type parameters w.r.t. type via reflection
+		// - e.g.: if the Class is Img,
+
+		// arg might be some special type marker
+		// - new TypeToken<Img<T>>(){}.getType() returns the generic type Img<T> (... is T resolved at all?)
+
+		// arg might be a Type
+		// - 
 		return arg instanceof Class &&
 			convertService.supports((Class<?>) arg, type);
 	}
+
+	private Type[] getTypeArgs(Object arg) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

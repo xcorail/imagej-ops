@@ -78,7 +78,7 @@ import org.scijava.InstantiableException;
  * <p>
  * The following table summarizes the available kinds of special ops:
  * </p>
- * <table style="border: 1px solid black; border-collapse: collapse">
+ * <table border=1 style="border: 1px solid black; border-collapse: collapse">
  * <tr>
  * <th>Name</th>
  * <th>Summary</th>
