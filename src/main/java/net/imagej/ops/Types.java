@@ -30,30 +30,24 @@
 
 package net.imagej.ops;
 
+import com.google.common.reflect.TypeToken;
 import com.googlecode.gentyref.GenericTypeReflector;
-import com.googlecode.gentyref.TypeToken;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
 
 import net.imagej.ImageJService;
+import net.imagej.ops.Types.Vague;
 import net.imglib2.IterableInterval;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.type.logic.BitType;
-import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.GenericByteType;
-import net.imglib2.type.numeric.integer.LongType;
-import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.type.numeric.real.FloatType;
 
 import org.scijava.service.AbstractService;
 import org.scijava.util.ClassUtils;
-import org.scijava.util.GenericUtils;
 
 /**
  * Interface for services that FIXME
@@ -62,13 +56,21 @@ import org.scijava.util.GenericUtils;
  */
 public class Types extends AbstractService implements ImageJService {
 
-	public static <T extends GenericByteType<T>> void go() {
-		Type exactType = exactType("field", Test1.class, Test1.class);
-		Type tokenType = new TypeToken<Vague<T, Img<T>>>() {}.getType();
-		System.out.println("* exact = " + exactType);
-		System.out.println("* token = " + tokenType);
+	public static <B extends GenericByteType<B>, T extends RealType<T>> void go() {
+		Type destType = exactType("field", Test1.class, Test1.class);
+//		Type destType = new TypeToken<Vague<T, Img<T>>>() {}.getType();
+//		Type objType = new TypeToken<Vague<B, Img<B>>>() {}.getType();
+		TypeToken<Vague<ByteType, Img<ByteType>>> destTT = new TypeToken<Vague<ByteType, Img<ByteType>>>() {};
+		TypeToken<Specific> objTT = TypeToken.of(Specific.class);
+		Vague<T, Img<T>> destInstance = null;
+//		Vague<B, Img<B>> objInstance = null;
+		Specific objInstance = null;
+		new Test1<ByteType, Img<ByteType>>().field = objInstance;
+		System.out.println("GUAVA? " + destTT.isAssignableFrom(objTT));
+//		System.out.println("* destination = " + destType);
+//		System.out.println("* object = " + objType);
 //		new RealThing<T>().fieldToMatch = new Specific();
-		System.out.println("DOES IT WORK? " + fitsInto(Specific.class, exactType));
+//		System.out.println("DOES IT WORK? " + fitsInto(Specific.class, destType));
 	}
 
 	private static boolean fitsInto(final Object obj, Type destType) {
@@ -173,7 +175,9 @@ public class Types extends AbstractService implements ImageJService {
 		Class<?> viewClass)
 	{
 		Field field = ClassUtils.getField(fieldClass, fieldName);
-		Type exactType = GenericUtils.getFieldType(field, viewClass);
-		return exactType;
+//		return GenericUtils.getFieldType(field, viewClass);
+		final Type viewWildType = GenericTypeReflector.addWildcardParameters(
+			viewClass);
+		return GenericTypeReflector.getExactFieldType(field, viewWildType);
 	}
 }

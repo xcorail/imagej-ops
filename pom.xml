@@ -220,6 +220,10 @@
 	</repositories>
 
 	<dependencies>
+	<dependency>
+	<groupId>com.google.guava</groupId>
+	<artifactId>guava</artifactId>
+	</dependency>
 		<!-- ImageJ dependencies -->
 		<dependency>
 			<groupId>net.imagej</groupId>

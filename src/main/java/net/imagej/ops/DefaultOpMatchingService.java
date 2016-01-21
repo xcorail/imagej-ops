@@ -412,18 +412,18 @@ public class DefaultOpMatchingService extends AbstractService implements
 	}
 
 	/** Determines whether the argument is a matching class instance. */
-	private boolean isMatchingClass(final Object arg, final Type type) {
+	private boolean isMatchingClass(final Object arg, final Type destType) {
 		// type must be either a raw class, or a parameterized type
 		// (might be GenericArrayType; throw UnsupportedOperationException in that case)
 		if (arg instanceof Type) {
 			// I really hope this works!
-			return GenericTypeReflector.isSuperType(type, (Type) arg);
+			return GenericTypeReflector.isSuperType(destType, (Type) arg);
 		}
 
-		if (type instanceof Class) {
+		if (destType instanceof Class) {
 			if (arg instanceof TypeToken) {
 				// arg is a TypeToken null placeholder; unwrap it
-				return isMatchingClass(((TypeToken<?>) arg).getType(), type);
+				return isMatchingClass(((TypeToken<?>) arg).getType(), destType);
 			}
 			if (arg instanceof Type) {
 				// arg is a generic Type null placeholder
@@ -437,7 +437,7 @@ public class DefaultOpMatchingService extends AbstractService implements
 					// FIXME: type is actually known to be a Class here.
 					// This is the more general case where we don't know if type is a Class
 					// or a ParameterizedType.
-					for (final Class<?> typeClass : GenericUtils.getClasses(type)) {
+					for (final Class<?> typeClass : GenericUtils.getClasses(destType)) {
 						// NB: Probably don't need this; below logic
 						// will return null if arg is not assignable.
 //						// all arg classes must be assignable to each destination class!
@@ -484,12 +484,12 @@ public class DefaultOpMatchingService extends AbstractService implements
 				}
 			}
 			// arg is a vanilla object
-			return ((Class<?>) type).isInstance(arg);
+			return ((Class<?>) destType).isInstance(arg);
 		}
-		if (type instanceof ParameterizedType) {
+		if (destType instanceof ParameterizedType) {
 			// check type parameters
 			final Type[] fieldTypeArgs =
-				((ParameterizedType) type).getActualTypeArguments();
+				((ParameterizedType) destType).getActualTypeArguments();
 
 			// - first try: see if the service can give us the actual types
 			final Type[] objectTypeArgs = getTypeArgs(arg);
@@ -540,7 +540,7 @@ public class DefaultOpMatchingService extends AbstractService implements
 		// arg might be a Type
 		// - 
 		return arg instanceof Class &&
-			convertService.supports((Class<?>) arg, type);
+			convertService.supports((Class<?>) arg, destType);
 	}
 
 	private Type[] getTypeArgs(Object arg) {
