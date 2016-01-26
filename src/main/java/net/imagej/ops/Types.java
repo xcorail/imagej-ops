@@ -80,9 +80,29 @@ public class Types extends AbstractService implements ImageJService {
 	}
 
 	private static boolean fitsInto(final Type objType, Type destType) {
-		// CTR: Unfortunately, this method does not behave as hoped.
-		return GenericTypeReflector.isSuperType(destType, objType);
+		// CTR: Unfortunately, this method does not behave as needed.
+//		return GenericTypeReflector.isSuperType(destType, objType);
+		// NB: We don't need the type to be a "pure" super type (i.e., assignment will work for all possible values of the type variables.
+		// We need to be compatible in a "there exists" kind of way: there are values of the type variables which would allow the assignment.
+
+		TypeToken
+
+		/*
+		TypeToken.of(destType).where(typeParam, typeArg);
+static <K, V> TypeToken<Map<K, V>> mapToken(TypeToken<K> keyToken, TypeToken<V> valueToken) {
+  return new TypeToken<Map<K, V>>() {}
+    .where(new TypeParameter<K>() {}, keyToken)
+    .where(new TypeParameter<V>() {}, valueToken);
+}
+...
+TypeToken<Map<String, BigInteger>> mapToken = mapToken(
+   TypeToken.of(String.class),
+   TypeToken.of(BigInteger.class));
+TypeToken<Map<Integer, Queue<String>>> complexToken = mapToken(
+   TypeToken.of(Integer.class),
+   new TypeToken<Queue<String>>() {});
 	}
+    */
 
 	////////////////////////////////
 
@@ -99,7 +119,7 @@ public class Types extends AbstractService implements ImageJService {
 
 	public static void main(final String[] args) {
 		// test with type
-		go();
+//		go();
 
 		// test with object
 		Specific obj = new Specific();
