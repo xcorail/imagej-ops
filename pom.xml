@@ -220,6 +220,17 @@
 			<artifactId>scripting-javascript</artifactId>
 		</dependency>
 
+		<!-- Third party dependencies -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.4</version>
+		</dependency>
+
 		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
