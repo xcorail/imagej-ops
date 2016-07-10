@@ -44,6 +44,7 @@ import java.util.Set;
 import org.scijava.command.CommandService;
 import org.scijava.module.ModuleItem;
 import org.scijava.plugin.Parameter;
+import org.scijava.type.Nil;
 import org.scijava.util.ClassUtils;
 import org.scijava.util.ConversionUtils;
 import org.scijava.util.GenericUtils;
@@ -263,12 +264,14 @@ public abstract class AbstractNamespaceTest extends AbstractOpTest {
 	private boolean checkOpImpl(final Method method, final String qName,
 		final Class<? extends Op> opType, final OpCoverSet coverSet)
 	{
-		// TODO: Type matching needs to be type<->type instead of class<->type.
-		// That is, the "special class placeholder" also needs to work with Type.
-		// Then we can pass Types here instead of Class instances.
-		// final Object[] argTypes = method.getGenericParameterTypes();
-		final Object[] argTypes = method.getParameterTypes();
-		final OpRef<Op> ref = OpRef.create(qName, argTypes);
+		// Create a generically typed null placeholder for each method argument.
+		final Type[] argTypes = method.getGenericParameterTypes();
+		final Object[] args = new Object[argTypes.length];
+		for (int i = 0; i < args.length; i++) {
+			args[i] = Nil.of(argTypes[i]);
+		}
+
+		final OpRef<Op> ref = OpRef.create(qName, args);
 		final OpInfo info = ops.info(opType);
 		final OpCandidate<Op> candidate = new OpCandidate<>(ops, ref, info);
 
@@ -292,26 +295,52 @@ public abstract class AbstractNamespaceTest extends AbstractOpTest {
 	}
 
 	private boolean inputTypesMatch(final OpCandidate<Op> candidate) {
-		// check for assignment compatibility, including generics
-		if (!matcher.typesMatch(candidate)) return false;
-
-		// also check that raw types exactly match
+		// check that generic types are exactly equal
+		//
+		// NB: Actually, this is too strict. It is ideal when we have
+		// exactly one method covering an op. In that case, we want to
+		// supply a generic method signature with _exactly_ the same
+		// generic type signature as that specified in the op.
+		//
+		// But when the method is annotated as covering multiple ops,
+		// we need to relax the restriction because the method parameters
+		// might be common supertypes of the corresponding arguments of
+		// the covered ops. This can certainly be imprecise.
+		// E.g., suppose we have two ops:
+		//
+		//    avg(Iterable<Integer>)
+		//    avg(Iterable<Float>)
+		//
+		// We cannot have separate method signatures for these two ops,
+		// because they erase to the same raw types. So instead we write:
+		//
+		//    @OpMethod(ops = {AvgInts.class, AvgFloats.class})
+		//    <N extends Number> avg(Iterable<N>)
+		//
+		// And the method parameter will not precisely equal either op.
+		//
+		// Certainly the user could pass e.g. Iterable<Double> to avg
+		// and the matcher will fail to find a match (assuming no
+		// suitable converter plugin is found).
+		//
+		// However, this may be the best we can do in this scenario.
+		// And the namespace test should pass in this case, not fail.
+		// Ideally, it would compute the "most specific common type"
+		// but that may be overambitious; we could fall back to just
+		// checking for matching (not equal) generic types in this case.
 		final Object[] paddedArgs = matcher.padArgs(candidate);
 		int i = 0;
 		for (final ModuleItem<?> input : candidate.cInfo().inputs()) {
 			final Object arg = paddedArgs[i++];
-			if (!typeMatches(arg, input.getType())) return false;
+			if (arg == null) continue; // optional argument not specified
+			if (!typeEquals(arg, input.getGenericType())) return false;
 		}
 
 		return true;
 	}
 
-	private boolean typeMatches(final Object arg, final Class<?> type) {
-		if (arg == null) return true;
-		// NB: Handle special typed null placeholder.
-		final Class<?> argType =
-			arg instanceof Class ? ((Class<?>) arg) : arg.getClass();
-		return argType == type;
+	private boolean typeEquals(final Object arg, final Type type) {
+		return type.equals(types.typeOf(arg));
 	}
 
 	private boolean outputTypesMatch(final Type returnType,
