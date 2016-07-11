@@ -37,7 +37,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-import org.scijava.util.GenericUtils;
+import org.scijava.types.Types;
 
 /**
  * Data structure which identifies an op by name and/or type(s) and/or argument
@@ -162,8 +162,7 @@ public class OpRef {
 		append(sb, name);
 		if (types != null) {
 			for (final Type t : types) {
-				// FIXME: Use better Type-to-string approach, once it exists.
-				append(sb, t instanceof Class ? ((Class<?>) t).getName() : t.toString());
+				append(sb, Types.name(t));
 			}
 		}
 		return sb.toString();
@@ -173,9 +172,7 @@ public class OpRef {
 	public boolean typesMatch(final Class<?> c) {
 		if (types == null) return true;
 		for (final Type t : types) {
-			// FIXME: Use generic assignability test, once it exists.
-			final Class<?> raw = GenericUtils.getClass(t);
-			if (!raw.isAssignableFrom(c)) return false;
+			if (!Types.isAssignable(c, t)) return false;
 		}
 		return true;
 	}

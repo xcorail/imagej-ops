@@ -42,6 +42,7 @@ import org.scijava.module.Module;
 import org.scijava.module.ModuleInfo;
 import org.scijava.module.ModuleItem;
 import org.scijava.plugin.SciJavaPlugin;
+import org.scijava.types.Types;
 import org.scijava.util.GenericUtils;
 
 /**
@@ -120,7 +121,7 @@ public final class OpUtils {
 				final Class<?> raw = GenericUtils.getClass(t);
 				if (!raw.isInstance(delegate)) {
 					throw new IllegalStateException(delegate.getClass().getName() +
-						" is not of type " + raw.getName());
+						" is not of type " + Types.name(t));
 				}
 			}
 		}

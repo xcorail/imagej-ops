@@ -49,7 +49,7 @@ import org.scijava.command.CommandInfo;
 import org.scijava.module.Module;
 import org.scijava.module.ModuleItem;
 import org.scijava.plugin.Parameter;
-import org.scijava.util.GenericUtils;
+import org.scijava.types.Types;
 
 /**
  * Creates {@link CachedFunctionOp}s which know how to cache their outputs.
@@ -91,9 +91,7 @@ public class CachedOpEnvironment extends CustomOpEnvironment {
 
 		for (final Class<?> ignored : ignoredOps) {
 			for (final Type t : ref.getTypes()) {
-				// FIXME: Use generic assignability test, once it exists.
-				final Class<?> raw = GenericUtils.getClass(t);
-				if (ignored.isAssignableFrom(raw)) {
+				if (Types.isAssignable(t, ignored)) {
 					return op;
 				}
 			}
