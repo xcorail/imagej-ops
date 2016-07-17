@@ -45,8 +45,8 @@ import java.util.Set;
 import org.scijava.command.CommandService;
 import org.scijava.module.ModuleItem;
 import org.scijava.plugin.Parameter;
+import org.scijava.types.Types;
 import org.scijava.util.ClassUtils;
-import org.scijava.util.ConversionUtils;
 import org.scijava.util.GenericUtils;
 
 /**
@@ -421,7 +421,7 @@ public abstract class AbstractNamespaceTest extends AbstractOpTest {
 	}
 
 	private String castTypeString(final ModuleItem<?> item) {
-		return ConversionUtils.getNonprimitiveType(item.getType()).getSimpleName();
+		return Types.box(item.getType()).getSimpleName();
 	}
 
 	// -- Helper classes --
