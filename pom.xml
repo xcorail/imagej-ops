@@ -172,6 +172,9 @@
 	<properties>
 		<main-class>net.imagej.ops.Main</main-class>
 		<scijava.jvm.version>1.8</scijava.jvm.version>
+		<!-- NB: we need the scijava-common generic-types branch -->
+		<scijava-common.version>2.57.0-SNAPSHOT</scijava-common.version>
+		<enforcer.skip>true</enforcer.skip>
 	</properties>
 
 	<repositories>
